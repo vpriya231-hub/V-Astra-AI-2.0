@@ -1,0 +1,51 @@
+{
+  "entities": {
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Represents a single conversation session",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Session title" },
+        "userId": { "type": "string", "description": "Owner of the session" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Chat Message",
+      "description": "A single message in a chat session",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["content", "role", "timestamp"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Public user profile information",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "themePreference": { "type": "string", "enum": ["dark", "light"] }
+      }
+    }
+  },
+  "firestore": {
+    "/sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Collection of chat sessions"
+    },
+    "/sessions/{sessionId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Sub-collection of messages for a session"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    }
+  }
+}

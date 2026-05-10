@@ -1,0 +1,97 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entities Validation ---
+
+    function isValidChatSession(data) {
+      return data.keys().hasAll(['userId', 'title', 'createdAt', 'updatedAt']) &&
+             data.keys().size() == 4 &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 200 &&
+             data.createdAt == request.time &&
+             data.updatedAt == request.time;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['content', 'role', 'timestamp']) &&
+             data.keys().size() == 3 &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.role in ['user', 'model'] &&
+             data.timestamp == request.time;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAny(['displayName', 'photoURL', 'themePreference']) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1000)) &&
+             (!('themePreference' in data) || (data.themePreference in ['dark', 'light']));
+    }
+
+    // --- Path Matching ---
+
+    match /sessions/{sessionId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && isValidId(sessionId) && isValidChatSession(incoming());
+      
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && 
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'updatedAt']) &&
+                      (!('title' in incoming()) || (incoming().title is string && incoming().title.size() <= 200)) &&
+                      incoming().updatedAt == request.time;
+      
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+
+      match /messages/{messageId} {
+        // Master Gate Helper for individual message access
+        function canAccessMessage() {
+          return isSignedIn() && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+        }
+
+        allow read: if canAccessMessage();
+        // For listing, we trust the Master Gate of the parent session and the query filtering
+        allow list: if isSignedIn() && get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+        allow create: if canAccessMessage() && isValidId(messageId) && isValidMessage(incoming());
+        allow update, delete: if false;
+      }
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && 
+                      incoming().diff(existing()).affectedKeys().hasAny(['displayName', 'photoURL', 'themePreference']) &&
+                      isValidUserProfile(incoming());
+      allow list, delete: if false;
+    }
+  }
+}
