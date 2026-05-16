@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MessageCircle, Plus, Menu, X, Moon, Sun, Send, Trash2, Bot, User as UserIcon, Loader2 } from "lucide-react";
+import { MessageCircle, Plus, Menu, X, Send, Trash2, Bot, User as UserIcon, Bell, Share2, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { clsx, type ClassValue } from "clsx";
@@ -25,6 +25,30 @@ interface ChatSession {
   updatedAt: string;
 }
 
+const LiquidBackground = ({ theme }: { theme: "light" | "dark" }) => (
+  <div className={cn(
+    "liquid-bg",
+    theme === "dark" ? "bg-[#010409]" : "bg-[#f8fafc]"
+  )}>
+    <div className={cn(
+      "blob w-[600px] h-[600px] top-[-10%] left-[-10%] blur-[120px]",
+      theme === "dark" ? "bg-[#00d4ff] opacity-20" : "bg-[#00d4ff] opacity-40"
+    )} />
+    <div className={cn(
+      "blob w-[500px] h-[500px] bottom-[-10%] right-[-10%] blur-[100px] animation-delay-2000",
+      theme === "dark" ? "bg-[#1c32c4] opacity-20" : "bg-[#1c32c4] opacity-30"
+    )} />
+    <div className={cn(
+      "blob w-[400px] h-[400px] top-[30%] right-[10%] blur-[150px] animation-delay-4000",
+      theme === "dark" ? "bg-[#7e22ce] opacity-15" : "bg-[#7e22ce] opacity-25"
+    )} />
+    <div className={cn(
+      "blob w-[450px] h-[450px] bottom-[20%] left-[20%] blur-[120px] animation-delay-1000",
+      theme === "dark" ? "bg-[#0072ff] opacity-20" : "bg-[#0072ff] opacity-35"
+    )} />
+  </div>
+);
+
 export default function App() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -32,29 +56,25 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Sessions and Theme from LocalStorage on mount
   useEffect(() => {
     const savedSessions = localStorage.getItem("v_astra_sessions");
-    const savedTheme = localStorage.getItem("v_astra_theme") as "dark" | "light";
-    
-    if (savedSessions) {
-      setSessions(JSON.parse(savedSessions));
-    }
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
+    const savedTheme = localStorage.getItem("v_astra_theme") as "light" | "dark";
+    if (savedSessions) setSessions(JSON.parse(savedSessions));
+    if (savedTheme) setTheme(savedTheme);
   }, []);
 
-  // Save Sessions to LocalStorage whenever they change
   useEffect(() => {
     localStorage.setItem("v_astra_sessions", JSON.stringify(sessions));
   }, [sessions]);
 
-  // Load Messages for current session
+  useEffect(() => {
+    localStorage.setItem("v_astra_theme", theme);
+  }, [theme]);
+
   useEffect(() => {
     if (!currentSessionId) {
       setMessages([]);
@@ -68,7 +88,6 @@ export default function App() {
     }
   }, [currentSessionId]);
 
-  // Save Messages to LocalStorage whenever they change
   useEffect(() => {
     if (currentSessionId && messages.length > 0) {
       localStorage.setItem(`v_astra_msgs_${currentSessionId}`, JSON.stringify(messages));
@@ -100,6 +119,10 @@ export default function App() {
       setCurrentSessionId(null);
       setMessages([]);
     }
+  };
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "dark" ? "light" : "dark");
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -163,17 +186,13 @@ export default function App() {
     }
   };
 
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    localStorage.setItem("v_astra_theme", newTheme);
-  };
-
   return (
     <div className={cn(
-      "flex h-screen overflow-hidden transition-colors duration-300 font-sans",
-      theme === "dark" ? "bg-[#010409] text-gray-100" : "bg-white text-gray-900"
+      "flex h-screen overflow-hidden font-sans selection:bg-[#00d4ff]/30 transition-colors duration-500",
+      theme === "dark" ? "text-gray-100" : "text-gray-900"
     )}>
+      <LiquidBackground theme={theme} />
+      
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div 
@@ -181,7 +200,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-md"
           />
         )}
       </AnimatePresence>
@@ -193,35 +212,50 @@ export default function App() {
           x: isSidebarOpen ? 0 : -320
         }}
         className={cn(
-          "fixed md:relative z-30 h-full flex flex-col border-r overflow-hidden transition-colors duration-300 shadow-2xl",
-          theme === "dark" ? "bg-[#0d1117] border-[#30363d]" : "bg-gray-50 border-gray-200"
+          "fixed md:relative z-30 h-full flex flex-col overflow-hidden border-r glass shadow-2xl",
+          theme === "dark" ? "border-white/10 bg-white/5" : "border-black/5 bg-black/[0.02]"
         )}
       >
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#00d4ff]/10 rounded-xl flex items-center justify-center">
-               <Bot className="w-6 h-6 text-[#00d4ff]" />
+        <div className="p-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg",
+              theme === "dark" ? "bg-[#00d4ff]/20 border-[#00d4ff]/30" : "bg-[#00d4ff]/10 border-[#1c32c4]/20"
+            )}>
+               <Bot className="w-7 h-7 text-[#00d4ff]" />
             </div>
-            <span className="font-bold text-2xl tracking-tighter text-[#00d4ff]">V-Astra AI</span>
+            <span className={cn(
+              "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
+              theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
+            )}>V-Astra</span>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 rounded-lg hover:bg-gray-500/10">
+          <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-3 rounded-2xl hover:bg-black/5 transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <button 
           onClick={createNewSession}
-          className="mx-4 mb-6 mt-2 flex items-center gap-3 p-4 border-2 rounded-2xl hover:bg-[#00d4ff]/10 hover:border-[#00d4ff] hover:text-[#00d4ff] transition-all group shadow-sm bg-gradient-to-r from-transparent to-transparent hover:from-[#00d4ff]/5"
-          style={{ borderColor: theme === "dark" ? "#30363d" : "#e5e7eb" }}
+          className={cn(
+            "mx-6 mb-8 flex items-center gap-4 p-5 rounded-[24px] border transition-all group shadow-sm",
+            theme === "dark" 
+              ? "bg-white/[0.03] border-white/10 hover:bg-[#00d4ff]/10 hover:border-[#00d4ff]/50" 
+              : "bg-black/[0.02] border-black/5 hover:bg-[#00d4ff]/5 hover:border-[#00d4ff]/30"
+          )}
         >
-          <Plus className="w-6 h-6 group-hover:scale-125 transition-transform text-[#00d4ff]" />
-          <span className="font-bold text-lg">New Chat</span>
+          <div className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform",
+            theme === "dark" ? "bg-[#00d4ff]/10" : "bg-[#00d4ff]/20"
+          )}>
+            <Plus className="w-6 h-6 text-[#00d4ff]" />
+          </div>
+          <span className="font-bold text-lg font-display">New Chat</span>
         </button>
 
-        <div className="flex-1 overflow-y-auto px-4 space-y-2 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3 custom-scrollbar">
           {sessions.length === 0 ? (
-             <div className="p-10 text-center text-gray-500 text-sm font-medium opacity-50">
-                No conversations yet.
+             <div className="p-10 text-center opacity-30 text-sm font-medium tracking-wide font-black">
+                SYSTEM IDLE.
              </div>
           ) : sessions.map((session) => (
             <div 
@@ -231,99 +265,118 @@ export default function App() {
                 if (window.innerWidth < 768) setIsSidebarOpen(false);
               }}
               className={cn(
-                "w-full text-left p-4 rounded-2xl flex items-center gap-4 transition-all relative group cursor-pointer border-2",
+                "w-full text-left p-5 rounded-[20px] flex items-center gap-4 transition-all relative group cursor-pointer border",
                 currentSessionId === session.id 
-                  ? (theme === "dark" ? "bg-[#161b22] text-[#00d4ff] border-[#00d4ff]/50 shadow-[0_0_20px_rgba(0,212,255,0.1)]" : "bg-white text-[#00d4ff] shadow-lg border-[#00d4ff]/50")
-                  : (theme === "dark" ? "hover:bg-[#161b22] border-transparent" : "hover:bg-white hover:shadow-md border-transparent")
+                  ? (theme === "dark" 
+                      ? "bg-white/[0.08] text-[#00d4ff] border-[#00d4ff]/30 shadow-[0_0_25px_rgba(0,212,255,0.08)]"
+                      : "bg-[#00d4ff]/10 text-[#1c32c4] border-[#00d4ff]/30 shadow-lg")
+                  : (theme === "dark"
+                      ? "bg-transparent border-transparent hover:bg-white/[0.04] text-gray-400 hover:text-white"
+                      : "bg-transparent border-transparent hover:bg-black/[0.03] text-gray-500 hover:text-black")
               )}
             >
-              <MessageCircle className="w-5 h-5 flex-shrink-0 opacity-60" />
-              <span className="truncate text-sm font-bold flex-1">{session.title}</span>
+              <MessageCircle className="w-5 h-5 flex-shrink-0 opacity-50" />
+              <span className="truncate text-sm font-semibold flex-1 tracking-tight">{session.title}</span>
               <button 
                 onClick={(e) => deleteSession(session.id, e)}
-                className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all"
+                className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-all font-black"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ))}
         </div>
-
-        <div className={cn(
-          "p-6 border-t mt-auto",
-          theme === "dark" ? "border-[#30363d]" : "border-gray-200"
-        )}>
-          <button 
-            onClick={toggleTheme} 
-            className={cn(
-              "w-full flex items-center justify-center gap-3 p-4 rounded-2xl transition-all font-bold text-sm border-2",
-              theme === "dark" ? "hover:bg-white/5 border-transparent text-gray-300" : "hover:bg-white border-transparent hover:shadow-md text-gray-600"
-            )}
-          >
-            {theme === "dark" ? (
-              <><Sun className="w-5 h-5 text-yellow-400" /> Light Mode</>
-            ) : (
-              <><Moon className="w-5 h-5 text-indigo-600" /> Dark Mode</>
-            )}
-          </button>
-        </div>
       </motion.aside>
 
-      <main className="flex-1 flex flex-col relative h-full">
+      <main className="flex-1 flex flex-col relative h-full overflow-hidden">
         <header className={cn(
-          "h-16 border-b flex items-center px-6 justify-between transition-colors duration-300 sticky top-0 z-10",
-          theme === "dark" ? "bg-[#010409]/80 border-[#30363d] backdrop-blur-md" : "bg-white/80 border-gray-200 backdrop-blur-md"
+          "h-20 border-b flex items-center px-8 justify-between glass sticky top-0 z-10 animate-in fade-in slide-in-from-top-4 duration-700",
+          theme === "dark" ? "border-white/10" : "border-black/5"
         )}>
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarOpen(true)} className={cn("p-2 rounded-lg hover:bg-gray-500/10", isSidebarOpen && "md:hidden")}>
+          <div className="flex items-center gap-6">
+            <button onClick={() => setIsSidebarOpen(true)} className={cn("p-3 rounded-2xl hover:bg-black/5 transition-colors", isSidebarOpen && "md:hidden")}>
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="text-xs font-black tracking-widest uppercase text-gray-500">
-               {sessions.find(s => s.id === currentSessionId)?.title || "V-Astra Autonomous Intelligence System"}
+            <h2 className={cn(
+              "text-[11px] font-black tracking-[0.4em] uppercase drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]",
+              theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
+            )}>
+               V-Astra Autonomous Intelligence System
             </h2>
+          </div>
+          <div className="flex items-center gap-3">
+             <button onClick={toggleTheme} className="p-3 rounded-2xl hover:bg-black/5 transition-colors border border-black/5 group">
+                {theme === "dark" ? <Sun className="w-5 h-5 text-yellow-400 group-hover:rotate-45 transition-transform" /> : <Moon className="w-5 h-5 text-indigo-600 group-hover:-rotate-12 transition-transform" />}
+             </button>
+             <button className="p-3 rounded-2xl hover:bg-black/5 transition-colors border border-black/5">
+                <Share2 className="w-5 h-5 opacity-40 hover:opacity-100" />
+             </button>
+             <button className="p-3 rounded-2xl hover:bg-black/5 transition-colors border border-black/5">
+                <Bell className="w-5 h-5 opacity-40 hover:opacity-100" />
+             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scrollbar space-y-10">
+        <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar space-y-12">
           {messages.length === 0 && !isLoading && (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-10 max-w-2xl mx-auto">
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-12 max-w-4xl mx-auto py-20">
               <motion.div 
-                initial={{ scale: 0.2, opacity: 0, rotate: -45 }}
-                animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                transition={{ type: "spring", damping: 15 }}
-                className="w-28 h-28 rounded-[2.5rem] bg-gradient-to-br from-[#00d4ff] to-[#0072ff] flex items-center justify-center shadow-[0_0_60px_rgba(0,212,255,0.4)]"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="relative"
               >
-                <Bot className="w-16 h-16 text-white drop-shadow-2xl" />
+                <div className={cn(
+                  "absolute inset-0 blur-[100px] opacity-20 rounded-full animate-pulse",
+                  theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
+                )} />
+                <div className={cn(
+                  "w-32 h-32 rounded-[40px] glass-card flex items-center justify-center border shadow-2xl relative z-10",
+                  theme === "dark" ? "border-white/20" : "border-black/5 bg-white/40"
+                )}>
+                   <Bot className={cn(
+                     "w-16 h-16 drop-shadow-[0_0_15px_rgba(0,212,255,0.8)]",
+                     theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
+                   )} />
+                </div>
               </motion.div>
-              <div className="space-y-4">
-                <h3 className="text-5xl md:text-6xl font-black tracking-tighter bg-gradient-to-b from-current to-transparent bg-clip-text">V-Astra AI</h3>
+              
+              <div className="space-y-6">
+                <h3 className={cn(
+                  "text-6xl md:text-8xl font-display font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-b",
+                  theme === "dark" ? "from-white to-white/20" : "from-black to-black/30"
+                )}>V-Astra AI</h3>
                 <p className={cn(
-                  "text-xl md:text-2xl font-semibold opacity-60",
+                  "text-xl md:text-2xl font-medium max-w-lg mx-auto leading-relaxed",
                   theme === "dark" ? "text-gray-400" : "text-gray-600"
                 )}>
-                  Hyper-efficient intelligence at your service.
+                  The future of autonomous reasoning, crystallized in digital glass.
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-10">
                  {[
                    "Draft a complex technical proposal",
-                   "Explain the Simulation Theory",
-                   "Write a performant sorting algorithm",
-                   "Design a sustainable urban layout"
+                   "Explain implementation of Q-Learning",
+                   "Write a highly performant Rust module",
+                   "Architect a decentralized grid system"
                  ].map((suggestion, i) => (
                    <motion.button 
                      key={suggestion}
-                     initial={{ opacity: 0, scale: 0.9 }}
-                     animate={{ opacity: 1, scale: 1 }}
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
                      transition={{ delay: i * 0.1 }}
                      onClick={() => setInput(suggestion)}
                      className={cn(
-                       "p-6 text-left rounded-[2rem] border-2 hover:border-[#00d4ff] hover:bg-[#00d4ff]/5 transition-all shadow-sm hover:shadow-xl",
-                       theme === "dark" ? "bg-[#0d1117] border-[#30363d]" : "bg-white border-gray-100"
+                       "p-8 text-left glass-card group relative overflow-hidden",
+                       theme === "dark" ? "hover:bg-[#00d4ff]/5 hover:border-[#00d4ff]/40" : "bg-white/40 border-black/5 hover:bg-[#00d4ff]/5 hover:border-[#00d4ff]/30 shadow-md"
                      )}
                    >
-                     <p className="font-black text-[10px] tracking-widest uppercase text-[#00d4ff] mb-2">Prompt Node {i + 1}</p>
-                     <p className="font-bold text-base leading-snug">{suggestion}</p>
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-[#00d4ff]/5 blur-3xl -mr-16 -mt-16 rounded-full group-hover:bg-[#00d4ff]/10 transition-colors" />
+                     <p className={cn(
+                       "font-black text-[11px] tracking-[0.3em] uppercase mb-4",
+                       theme === "dark" ? "text-[#00d4ff] drop-shadow-[0_0_8px_rgba(0,212,255,0.4)]" : "text-[#1c32c4]"
+                     )}>NODE SECURE {i + 1}</p>
+                     <p className="font-display font-bold text-lg leading-snug">{suggestion}</p>
                    </motion.button>
                  ))}
               </div>
@@ -333,27 +386,32 @@ export default function App() {
           {messages.map((message) => (
             <motion.div 
               key={message.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               className={cn(
-                "flex gap-6 w-full max-w-4xl mx-auto",
+                "flex gap-8 w-full max-w-5xl mx-auto",
                 message.role === "user" ? "flex-row-reverse" : "flex-row"
               )}
             >
               <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl",
-                message.role === "user" ? "bg-gradient-to-br from-[#00d4ff] to-blue-700" : "bg-[#0d1117] border-2 border-[#30363d]"
+                "w-14 h-14 rounded-[20px] flex items-center justify-center flex-shrink-0 shadow-2xl relative overflow-hidden ring-1",
+                message.role === "user" 
+                  ? (theme === "dark" ? "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-white/10" : "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-black/10 shadow-indigo-500/20") 
+                  : (theme === "dark" ? "glass ring-white/5 bg-white/5" : "glass ring-black/5 bg-white/60 shadow-lg")
               )}>
-                {message.role === "user" ? <UserIcon className="w-6 h-6 text-white" /> : <Bot className="w-6 h-6 text-[#00d4ff]" />}
+                {message.role === "user" ? <UserIcon className="w-7 h-7 text-white" /> : <Bot className={cn(
+                   "w-7 h-7 drop-shadow-[0_0_8px_rgba(0,212,255,0.6)]",
+                   theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
+                )} />}
               </div>
               <div className={cn(
-                "flex-1 px-8 py-5 rounded-[2.5rem] overflow-hidden shadow-sm border-2",
+                "flex-1 px-10 py-8 glass-card border shadow-xl relative",
                 message.role === "user" 
-                  ? (theme === "dark" ? "bg-[#161b22] border-[#30363d]" : "bg-[#f8fafc] border-gray-100") 
+                  ? (theme === "dark" ? "bg-white/[0.04] border-white/5" : "bg-white/60 border-black/5 shadow-md") 
                   : "bg-transparent border-transparent"
               )}>
                 <div className={cn(
-                  "prose prose-sm md:prose-base max-w-none leading-relaxed font-medium",
+                  "prose max-w-none prose-p:leading-[1.8] prose-p:font-medium",
                   theme === "dark" ? "prose-invert" : "prose-slate"
                 )}>
                   <ReactMarkdown>{message.content}</ReactMarkdown>
@@ -361,38 +419,54 @@ export default function App() {
               </div>
             </motion.div>
           ))}
+          
           {isLoading && (
             <motion.div 
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
-               className="flex gap-6 w-full max-w-4xl mx-auto"
+               className="flex gap-8 w-full max-w-5xl mx-auto"
             >
-              <div className="w-12 h-12 rounded-2xl bg-[#0d1117] border-2 border-[#30363d] flex items-center justify-center flex-shrink-0">
-                <Bot className="w-6 h-6 text-[#00d4ff]" />
+              <div className={cn(
+                "w-14 h-14 rounded-[20px] glass flex items-center justify-center flex-shrink-0 border",
+                theme === "dark" ? "border-white/10 bg-white/5" : "border-black/5 bg-white/60"
+              )}>
+                <Bot className={cn(
+                  "w-7 h-7 animate-pulse",
+                  theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
+                )} />
               </div>
-              <div className="flex items-center gap-4 px-8 py-5">
-                 <div className="flex gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#00d4ff] animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-2 h-2 rounded-full bg-[#00d4ff] animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-2 h-2 rounded-full bg-[#00d4ff] animate-bounce"></span>
+              <div className="flex items-center gap-6 px-10 py-8">
+                 <div className="flex gap-3">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.3s]",
+                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                    )}></div>
+                    <div className={cn(
+                      "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.15s]",
+                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                    )}></div>
+                    <div className={cn(
+                      "w-3 h-3 rounded-full animate-bounce",
+                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                    )}></div>
                  </div>
-                 <span className="text-xs font-black tracking-[0.2em] text-[#00d4ff] uppercase">Calculating</span>
+                 <span className={cn(
+                   "text-[10px] font-black tracking-[0.5em] uppercase",
+                   theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
+                 )}>Processing Data</span>
               </div>
             </motion.div>
           )}
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-32" />
         </div>
 
-        <div className={cn(
-          "p-6 md:p-12 transition-colors duration-300",
-          theme === "dark" ? "bg-[#010409]" : "bg-white"
-        )}>
-           <div className="max-w-4xl mx-auto relative">
+        <div className="p-8 md:p-16 relative">
+           <div className="max-w-5xl mx-auto">
              <form 
               onSubmit={handleSendMessage}
               className={cn(
-                "relative flex items-center gap-3 p-3 rounded-[3rem] border-2 transition-all shadow-[0_20px_50px_rgba(0,0,0,0.1)] focus-within:shadow-[#00d4ff]/20",
-                theme === "dark" ? "bg-[#0d1117] border-[#30363d] focus-within:border-[#00d4ff]" : "bg-white border-gray-200 focus-within:border-[#00d4ff]"
+                "relative flex items-center gap-4 p-4 glass-input border transition-all shadow-2xl group",
+                theme === "dark" ? "border-white/10 bg-black/20 focus-within:border-[#00d4ff]/40" : "border-black/5 bg-white/60 focus-within:border-[#1c32c4]/30"
               )}
              >
                 <textarea 
@@ -405,26 +479,45 @@ export default function App() {
                     }
                   }}
                   placeholder="Initiate command sequence..."
-                  className="flex-1 bg-transparent border-none focus:ring-0 resize-none py-4 px-6 min-h-[64px] max-h-56 custom-scrollbar text-lg font-bold placeholder:text-gray-600 placeholder:opacity-50"
+                  className={cn(
+                    "flex-1 bg-transparent border-none focus:ring-0 resize-none py-4 px-8 min-h-[64px] max-h-60 custom-scrollbar text-lg font-bold tracking-tight",
+                    theme === "dark" ? "text-white placeholder:text-gray-600" : "text-black placeholder:text-gray-400"
+                  )}
                   rows={1}
                 />
                 <button 
                   type="submit"
                   disabled={!input.trim() || isLoading}
                   className={cn(
-                    "w-14 h-14 rounded-full transition-all flex items-center justify-center shadow-xl group",
+                    "w-16 h-16 rounded-[24px] transition-all flex items-center justify-center shadow-2xl relative overflow-hidden group",
                     input.trim() && !isLoading 
-                      ? "bg-[#00d4ff] text-black hover:scale-110 active:scale-95 shadow-[#00d4ff]/40" 
-                      : "bg-gray-500/10 text-gray-400 cursor-not-allowed"
+                      ? "bg-gradient-to-br from-[#00d2ff] to-[#1c32c4] text-white hover:scale-105 active:scale-95 shadow-[0_10px_40px_rgba(0,210,255,0.3)] border border-white/20" 
+                      : (theme === "dark" ? "bg-white/5 text-gray-600 border border-white/5 cursor-not-allowed opacity-50" : "bg-black/5 text-gray-400 border border-black/5 cursor-not-allowed opacity-50")
                   )}
                 >
-                  <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
+                  <Send className="w-7 h-7 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 </button>
              </form>
-             <div className="flex justify-center gap-8 mt-6">
-                <p className="text-[10px] font-black tracking-[0.3em] uppercase opacity-20 hover:opacity-100 transition-opacity cursor-default">V-Astra v4.0 // Neural core active</p>
-                <div className="w-1.5 h-1.5 rounded-full bg-[#00d4ff] animate-pulse"></div>
-                <p className="text-[10px] font-black tracking-[0.3em] uppercase opacity-20 hover:opacity-100 transition-opacity cursor-default">Autonomous Intelligence</p>
+             
+             <nav className={cn(
+               "mt-12 mb-4 p-4 glass rounded-[28px] border flex items-center justify-center gap-12 max-w-md mx-auto shadow-[0_15px_35px_rgba(0,0,0,0.1)]",
+               theme === "dark" ? "border-white/10 bg-white/5" : "border-black/5 bg-white/60"
+             )}>
+                {['Home', 'Chat', 'About'].map(item => (
+                  <button key={item} className="text-xs font-black tracking-[0.3em] uppercase text-gray-500 hover:text-[#00d4ff] transition-colors px-6 py-2 rounded-xl hover:bg-black/5">
+                    {item}
+                  </button>
+                ))}
+             </nav>
+
+             <div className="flex justify-center gap-10 mt-8">
+                <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.1.0 // Matrix v2</p>
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full animate-pulse",
+                  theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                )}></div>
+                <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
              </div>
            </div>
         </div>
@@ -432,37 +525,38 @@ export default function App() {
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: ${theme === 'dark' ? '#30363d' : '#cbd5e1'};
+          background: ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
           border-radius: 20px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #00d4ff;
+          background: #00d4ff44;
         }
         pre {
-          background: #0d1117 !important;
-          border: 2px solid #30363d;
+          background: ${theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)'} !important;
+          border: 1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'};
           border-radius: 20px;
-          padding: 1.5rem !important;
+          padding: 2rem !important;
           margin: 2rem 0 !important;
           overflow-x: auto;
-          box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+          box-shadow: ${theme === 'dark' ? 'inset 0 2px 10px rgba(0,0,0,0.3)' : '0 10px 30px rgba(0,0,0,0.1)'};
+          backdrop-filter: blur(10px);
         }
         code {
           font-family: 'JetBrains Mono', monospace;
           font-size: 0.9em;
+          color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'} !important;
         }
-        .prose p { margin-bottom: 1.5rem; }
-        .prose ul, .prose ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
-        .prose li { margin-bottom: 0.75rem; }
-        .prose h1, .prose h2, .prose h3 { font-weight: 900; margin-top: 2.5rem; margin-bottom: 1.5rem; letter-spacing: -0.05em; }
-        .prose a { color: #00d4ff; text-decoration: underline; font-weight: 800; }
-        .prose blockquote { border-left: 6px solid #00d4ff; padding-left: 2rem; font-style: italic; color: #64748b; margin: 2rem 0; }
+        .prose h1, .prose h2, .prose h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; letter-spacing: -0.05em; color: ${theme === 'dark' ? '#fff' : '#000'} !important; }
+        .prose p { color: ${theme === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.9)'} !important; font-weight: 500; }
+        .prose strong { color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'}; font-weight: 800; }
+        .prose blockquote { border-left: 4px solid #1c32c4; background: ${theme === 'dark' ? 'rgba(28, 50, 196, 0.05)' : 'rgba(28, 50, 196, 0.1)'}; padding: 1.5rem 2rem; border-radius: 0 20px 20px 0; color: ${theme === 'dark' ? '#cbd5e1' : '#475569'} !important; }
+        .prose ul li::marker { color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'}; }
       `}</style>
     </div>
   );
