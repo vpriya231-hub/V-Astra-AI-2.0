@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MessageCircle, Plus, Menu, X, Send, Trash2, Bot, User as UserIcon, Bell, Share2, Sun, Moon } from "lucide-react";
+import { MessageCircle, Plus, Menu, X, Send, Trash2, Bot, User as UserIcon, Zap, ExternalLink, Database, Grid3X3, Terminal, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { clsx, type ClassValue } from "clsx";
@@ -28,25 +28,8 @@ interface ChatSession {
 const LiquidBackground = ({ theme }: { theme: "light" | "dark" }) => (
   <div className={cn(
     "liquid-bg",
-    theme === "dark" ? "bg-[#010409]" : "bg-[#f8fafc]"
-  )}>
-    <div className={cn(
-      "blob w-[600px] h-[600px] top-[-10%] left-[-10%] blur-[120px]",
-      theme === "dark" ? "bg-[#00d4ff] opacity-20" : "bg-[#00d4ff] opacity-40"
-    )} />
-    <div className={cn(
-      "blob w-[500px] h-[500px] bottom-[-10%] right-[-10%] blur-[100px] animation-delay-2000",
-      theme === "dark" ? "bg-[#1c32c4] opacity-20" : "bg-[#1c32c4] opacity-30"
-    )} />
-    <div className={cn(
-      "blob w-[400px] h-[400px] top-[30%] right-[10%] blur-[150px] animation-delay-4000",
-      theme === "dark" ? "bg-[#7e22ce] opacity-15" : "bg-[#7e22ce] opacity-25"
-    )} />
-    <div className={cn(
-      "blob w-[450px] h-[450px] bottom-[20%] left-[20%] blur-[120px] animation-delay-1000",
-      theme === "dark" ? "bg-[#0072ff] opacity-20" : "bg-[#0072ff] opacity-35"
-    )} />
-  </div>
+    theme === "dark" ? "bg-[#000000]" : "bg-[#ffffff]"
+  )} />
 );
 
 export default function App() {
@@ -308,12 +291,6 @@ export default function App() {
              <button onClick={toggleTheme} className="p-3 rounded-2xl hover:bg-black/5 transition-colors border border-black/5 group">
                 {theme === "dark" ? <Sun className="w-5 h-5 text-yellow-400 group-hover:rotate-45 transition-transform" /> : <Moon className="w-5 h-5 text-indigo-600 group-hover:-rotate-12 transition-transform" />}
              </button>
-             <button className="p-3 rounded-2xl hover:bg-black/5 transition-colors border border-black/5">
-                <Share2 className="w-5 h-5 opacity-40 hover:opacity-100" />
-             </button>
-             <button className="p-3 rounded-2xl hover:bg-black/5 transition-colors border border-black/5">
-                <Bell className="w-5 h-5 opacity-40 hover:opacity-100" />
-             </button>
           </div>
         </header>
 
@@ -405,10 +382,14 @@ export default function App() {
                 )} />}
               </div>
               <div className={cn(
-                "flex-1 px-10 py-8 glass-card border shadow-xl relative",
+                "flex-1 px-10 py-8 glass-card border shadow-2xl relative",
                 message.role === "user" 
-                  ? (theme === "dark" ? "bg-white/[0.04] border-white/5" : "bg-white/60 border-black/5 shadow-md") 
-                  : "bg-transparent border-transparent"
+                  ? (theme === "dark" 
+                      ? "bg-white/[0.08] border-white/10 shadow-[#00d4ff]/5" 
+                      : "bg-white/70 border-black/5 shadow-gray-200") 
+                  : (theme === "dark"
+                      ? "bg-white/[0.03] border-white/5" 
+                      : "bg-white/40 border-black/5 shadow-sm")
               )}>
                 <div className={cn(
                   "prose max-w-none prose-p:leading-[1.8] prose-p:font-medium",
@@ -435,7 +416,10 @@ export default function App() {
                   theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
                 )} />
               </div>
-              <div className="flex items-center gap-6 px-10 py-8">
+              <div className={cn(
+                "flex-1 px-10 py-8 glass-card border flex items-center gap-6 shadow-2xl",
+                theme === "dark" ? "bg-white/[0.03] border-white/5" : "bg-white/40 border-black/5 shadow-sm"
+              )}>
                  <div className="flex gap-3">
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.3s]",
@@ -500,24 +484,18 @@ export default function App() {
                 </button>
              </form>
              
-             <nav className={cn(
-               "mt-12 mb-4 p-4 glass rounded-[28px] border flex items-center justify-center gap-12 max-w-md mx-auto shadow-[0_15px_35px_rgba(0,0,0,0.1)]",
-               theme === "dark" ? "border-white/10 bg-white/5" : "border-black/5 bg-white/60"
-             )}>
-                {['Home', 'Chat', 'About'].map(item => (
-                  <button key={item} className="text-xs font-black tracking-[0.3em] uppercase text-gray-500 hover:text-[#00d4ff] transition-colors px-6 py-2 rounded-xl hover:bg-black/5">
-                    {item}
-                  </button>
-                ))}
-             </nav>
-
-             <div className="flex justify-center gap-10 mt-8">
-                <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.1.0 // Matrix v2</p>
-                <div className={cn(
-                  "w-1.5 h-1.5 rounded-full animate-pulse",
-                  theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
-                )}></div>
-                <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
+             <div className="flex flex-col items-center gap-4 mt-8">
+                <p className="text-[9px] font-bold tracking-[0.1em] opacity-40 uppercase text-center px-4">
+                  V-Astra is AI, and can make mistakes. Verify critical information.
+                </p>
+                <div className="flex justify-center gap-10">
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.1.0 // Matrix v2</p>
+                   <div className={cn(
+                     "w-1.5 h-1.5 rounded-full animate-pulse",
+                     theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                   )}></div>
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
+                </div>
              </div>
            </div>
         </div>

@@ -17,15 +17,15 @@
 
 @layer utilities {
   .glass {
-    @apply backdrop-blur-[20px] border transition-all duration-500;
+    @apply backdrop-blur-[40px] border transition-all duration-500;
   }
   
   .glass-card {
-    @apply backdrop-blur-[20px] border rounded-[24px] transition-all duration-500;
+    @apply backdrop-blur-[40px] border rounded-[24px] transition-all duration-500 shadow-xl;
   }
 
   .glass-input {
-    @apply backdrop-blur-xl border rounded-[32px] transition-all duration-500;
+    @apply backdrop-blur-[40px] border rounded-[32px] transition-all duration-500;
   }
 
   .liquid-bg {
@@ -35,23 +35,7 @@
     width: 100%;
     height: 100%;
     z-index: -1;
-    overflow: hidden;
-    @apply transition-all duration-1000;
-  }
-
-  .blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.5;
-    animation: move-liquid 20s infinite alternate;
-  }
-
-  @keyframes move-liquid {
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(10vw, 5vh) scale(1.1); }
-    66% { transform: translate(-5vw, 15vh) scale(0.9); }
-    100% { transform: translate(5vw, -5vh) scale(1.05); }
+    @apply transition-all duration-700;
   }
 }
 
