@@ -15,7 +15,6 @@ interface ChatMessage {
   content: string;
   role: "user" | "model";
   timestamp: string;
-  isLimitMessage?: boolean;
 }
 
 interface ChatSession {
@@ -41,8 +40,17 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [isUnlockedMode, setIsUnlockedMode] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // URL parameter check for unlocked mode
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get("mode") === "unlocked") {
+      setIsUnlockedMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     const savedSessions = localStorage.getItem("v_astra_sessions");
@@ -109,13 +117,6 @@ export default function App() {
     setTheme(prev => prev === "dark" ? "light" : "dark");
   };
 
-  const handleResetLimit = () => {
-    const today = new Date().toDateString();
-    localStorage.setItem("v_astra_chat_date", today);
-    localStorage.setItem("v_astra_chat_count", "0");
-    window.location.reload();
-  };
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -132,31 +133,17 @@ export default function App() {
       count = 0;
     }
 
-    if (count >= MAX_MESSAGES) {
+    // Bypass if url has ?mode=unlocked
+    if (!isUnlockedMode && count >= MAX_MESSAGES) {
       const limitMsgObj: ChatMessage = {
         id: crypto.randomUUID(),
-        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nClick the button below to watch a quick ad and instantly reset your daily limit to unlock 20 more premium messages!",
+        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra, please return tomorrow or tap the **'Unlock More'** button on the home screen to watch a quick ad and renew your credits instantly.",
         role: "model",
         timestamp: new Date().toISOString(),
-        isLimitMessage: true
       };
       setMessages(prev => [...prev, limitMsgObj]);
       setInput("");
       return; 
-    }
-
-    let sessionId = currentSessionId;
-    if (!sessionId) {
-      const newSession: ChatSession = {
-        id: crypto.randomUUID(),
-        title: input.slice(0, 30) + (input.length > 30 ? "..." : ""),
-        userId: "local-user",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setSessions(prev => [newSession, ...prev]);
-      sessionId = newSession.id;
-      setCurrentSessionId(sessionId);
     }
 
     const userMessage = input.trim();
@@ -171,6 +158,20 @@ export default function App() {
     setInput("");
     setIsLoading(true);
 
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      const newSession: ChatSession = {
+        id: crypto.randomUUID(),
+        title: userMessage.slice(0, 30) + (userMessage.length > 30 ? "..." : ""),
+        userId: "local-user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    };
+      setSessions(prev => [newSession, ...prev]);
+      sessionId = newSession.id;
+      setCurrentSessionId(sessionId);
+    }
+
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
       const aiResponse = await getGeminiResponse(userMessage, history);
@@ -183,7 +184,10 @@ export default function App() {
       };
 
       setMessages(prev => [...prev, aiMsgObj]);
-      localStorage.setItem("v_astra_chat_count", (count + 1).toString());
+
+      if (!isUnlockedMode) {
+        localStorage.setItem("v_astra_chat_count", (count + 1).toString());
+      }
 
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
@@ -241,10 +245,15 @@ export default function App() {
             )}>
                <Bot className="w-7 h-7 text-[#00d4ff]" />
             </div>
-            <span className={cn(
-              "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
-              theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
-            )}>V-Astra</span>
+            <div className="flex flex-col">
+              <span className={cn(
+                "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
+                theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
+              )}>V-Astra</span>
+              {isUnlockedMode && (
+                <span className="text-[9px] font-black tracking-widest text-[#00d4ff] uppercase">UNLOCKED MODE</span>
+              )}
+            </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-3 rounded-2xl hover:bg-black/5 transition-colors">
             <X className="w-6 h-6" />
@@ -318,7 +327,7 @@ export default function App() {
               "text-[11px] font-black tracking-[0.4em] uppercase drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]",
               theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
             )}>
-               V-Astra Autonomous Intelligence System
+               V-Astra {isUnlockedMode ? "Matrix Unlocked" : "Autonomous Intelligence"} System
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -360,7 +369,7 @@ export default function App() {
                   "text-xl md:text-2xl font-medium max-w-lg mx-auto leading-relaxed",
                   theme === "dark" ? "text-gray-400" : "text-gray-600"
                 )}>
-                  The future of autonomous reasoning, crystallized in digital glass.
+                  {isUnlockedMode ? "Unlimited session established via node clearance." : "The future of autonomous reasoning, crystallized in digital glass."}
                 </p>
               </div>
 
@@ -416,7 +425,7 @@ export default function App() {
                 )} />}
               </div>
               <div className={cn(
-                "flex-1 px-10 py-8 glass-card border shadow-2xl relative flex flex-col",
+                "flex-1 px-10 py-8 glass-card border shadow-2xl relative",
                 message.role === "user" 
                   ? (theme === "dark" ? "bg-white/[0.08] border-white/10" : "bg-white/70 border-black/5") 
                   : (theme === "dark" ? "bg-white/[0.03] border-white/5" : "bg-white/40 border-black/5")
@@ -427,16 +436,6 @@ export default function App() {
                 )}>
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
-
-                {/* --- AD RESET BUTTON --- */}
-                {message.isLimitMessage && (
-                  <button
-                    onClick={handleResetLimit}
-                    className="mt-6 self-start px-6 py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-amber-500 to-orange-600 shadow-xl transition-all border border-white/10 cursor-pointer"
-                  >
-                    Watch Ad to Unlock Limit
-                  </button>
-                )}
               </div>
             </motion.div>
           ))}
@@ -526,4 +525,54 @@ export default function App() {
              
              <div className="flex flex-col items-center gap-4 mt-8">
                 <p className="text-[9px] font-bold tracking-[0.1em] opacity-40 uppercase text-center px-4">
-                  V-A
+                  V-Astra is AI, and can make mistakes. Verify critical information.
+                </p>
+                <div className="flex justify-center gap-10">
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.1.0 // Matrix v2</p>
+                   <div className={cn(
+                     "w-1.5 h-1.5 rounded-full animate-pulse",
+                     theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
+                   )}></div>
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
+                </div>
+             </div>
+           </div>
+        </div>
+      </main>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
+          border-radius: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #00d4ff44;
+        }
+        pre {
+          background: ${theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)'} !important;
+          border: 1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'};
+          border-radius: 20px;
+          padding: 2rem !important;
+          margin: 2rem 0 !important;
+          overflow-x: auto;
+        }
+        code {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.9em;
+          color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'} !important;
+        }
+        .prose h1, .prose h2, .prose h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; letter-spacing: -0.05em; color: ${theme === 'dark' ? '#fff' : '#000'} !important; }
+        .prose p { color: ${theme === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.9)'} !important; font-weight: 500; }
+        .prose strong { color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'}; font-weight: 800; }
+        .prose blockquote { border-left: 4px solid #1c32c4; background: ${theme === 'dark' ? 'rgba(28, 50, 196, 0.05)' : 'rgba(28, 50, 196, 0.1)'}; padding: 1.5rem 2rem; border-radius: 0 20px 20px 0; color: ${theme === 'dark' ? '#cbd5e1' : '#475569'} !important; }
+        .prose ul li::marker { color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'}; }
+      `}</style>
+    </div>
+  );
+}
