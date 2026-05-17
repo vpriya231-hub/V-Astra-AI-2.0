@@ -15,6 +15,7 @@ interface ChatMessage {
   content: string;
   role: "user" | "model";
   timestamp: string;
+  isLimitMessage?: boolean;
 }
 
 interface ChatSession {
@@ -40,17 +41,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [isUnlockedMode, setIsUnlockedMode] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Check URL parameters to see if user arrived from the Ad Unlock section
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    if (queryParams.get("mode") === "unlocked") {
-      setIsUnlockedMode(true);
-    }
-  }, []);
 
   useEffect(() => {
     const savedSessions = localStorage.getItem("v_astra_sessions");
@@ -117,11 +109,19 @@ export default function App() {
     setTheme(prev => prev === "dark" ? "light" : "dark");
   };
 
+  // Safe reset function without complicated hooks
+  const handleResetLimit = () => {
+    const today = new Date().toDateString();
+    localStorage.setItem("v_astra_chat_date", today);
+    localStorage.setItem("v_astra_chat_count", "0");
+    window.location.reload();
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // --- 🔐 DAILY RATELIMIT LOGIC START ---
+    // --- 🔐 DAILY RATELIMIT LOGIC ---
     const MAX_MESSAGES = 20; 
     const today = new Date().toDateString();
     const savedDate = localStorage.getItem("v_astra_chat_date");
@@ -133,19 +133,18 @@ export default function App() {
       count = 0;
     }
 
-    // Bypass rate limiting entirely if the user is in Unlocked Mode via Ads
-    if (!isUnlockedMode && count >= MAX_MESSAGES) {
+    if (count >= MAX_MESSAGES) {
       const limitMsgObj: ChatMessage = {
         id: crypto.randomUUID(),
-        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra without limits, please go back to the home screen and open the **'Unlock More'** section to watch a quick ad and open your unlimited chat matrix instantly.",
+        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nClick the button below to watch a quick ad and instantly reset your daily limit to unlock 20 more premium messages!",
         role: "model",
         timestamp: new Date().toISOString(),
+        isLimitMessage: true
       };
       setMessages(prev => [...prev, limitMsgObj]);
       setInput("");
       return; 
     }
-    // --- 🔐 DAILY RATELIMIT LOGIC END ---
 
     let sessionId = currentSessionId;
     if (!sessionId) {
@@ -185,11 +184,7 @@ export default function App() {
       };
 
       setMessages(prev => [...prev, aiMsgObj]);
-
-      // Increment counter only if not in unlocked premium mode
-      if (!isUnlockedMode) {
-        localStorage.setItem("v_astra_chat_count", (count + 1).toString());
-      }
+      localStorage.setItem("v_astra_chat_count", (count + 1).toString());
 
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
@@ -247,15 +242,10 @@ export default function App() {
             )}>
                <Bot className="w-7 h-7 text-[#00d4ff]" />
             </div>
-            <div className="flex flex-col">
-              <span className={cn(
-                "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
-                theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
-              )}>V-Astra</span>
-              {isUnlockedMode && (
-                <span className="text-[9px] font-black tracking-widest text-[#00d4ff] uppercase">UNLOCKED MODE</span>
-              )}
-            </div>
+            <span className={cn(
+              "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
+              theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
+            )}>V-Astra</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-3 rounded-2xl hover:bg-black/5 transition-colors">
             <X className="w-6 h-6" />
@@ -318,7 +308,7 @@ export default function App() {
 
       <main className="flex-1 flex flex-col relative h-full overflow-hidden">
         <header className={cn(
-          "h-20 border-b flex items-center px-8 justify-between glass sticky top-0 z-10 animate-in fade-in slide-in-from-top-4 duration-700",
+          "h-20 border-b flex items-center px-8 justify-between glass sticky top-0 z-10",
           theme === "dark" ? "border-white/10" : "border-black/5"
         )}>
           <div className="flex items-center gap-6">
@@ -329,7 +319,7 @@ export default function App() {
               "text-[11px] font-black tracking-[0.4em] uppercase drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]",
               theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
             )}>
-               V-Astra {isUnlockedMode ? "Matrix Unlocked" : "Autonomous Intelligence"} System
+               V-Astra Autonomous Intelligence System
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -371,7 +361,7 @@ export default function App() {
                   "text-xl md:text-2xl font-medium max-w-lg mx-auto leading-relaxed",
                   theme === "dark" ? "text-gray-400" : "text-gray-600"
                 )}>
-                  {isUnlockedMode ? "Unlimited session established via node clearance." : "The future of autonomous reasoning, crystallized in digital glass."}
+                  The future of autonomous reasoning, crystallized in digital glass.
                 </p>
               </div>
 
@@ -418,7 +408,7 @@ export default function App() {
               <div className={cn(
                 "w-14 h-14 rounded-[20px] flex items-center justify-center flex-shrink-0 shadow-2xl relative overflow-hidden ring-1",
                 message.role === "user" 
-                  ? (theme === "dark" ? "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-white/10" : "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-black/10 shadow-indigo-500/20") 
+                  ? "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-white/10" 
                   : (theme === "dark" ? "glass ring-white/5 bg-white/5" : "glass ring-black/5 bg-white/60 shadow-lg")
               )}>
                 {message.role === "user" ? <UserIcon className="w-7 h-7 text-white" /> : <Bot className={cn(
@@ -427,14 +417,10 @@ export default function App() {
                 )} />}
               </div>
               <div className={cn(
-                "flex-1 px-10 py-8 glass-card border shadow-2xl relative",
+                "flex-1 px-10 py-8 glass-card border shadow-2xl relative flex flex-col",
                 message.role === "user" 
-                  ? (theme === "dark" 
-                      ? "bg-white/[0.08] border-white/10 shadow-[#00d4ff]/5" 
-                      : "bg-white/70 border-black/5 shadow-gray-200") 
-                  : (theme === "dark"
-                      ? "bg-white/[0.03] border-white/5" 
-                      : "bg-white/40 border-black/5 shadow-sm")
+                  ? (theme === "dark" ? "bg-white/[0.08] border-white/10" : "bg-white/70 border-black/5") 
+                  : (theme === "dark" ? "bg-white/[0.03] border-white/5" : "bg-white/40 border-black/5")
               )}>
                 <div className={cn(
                   "prose max-w-none prose-p:leading-[1.8] prose-p:font-medium",
@@ -442,6 +428,16 @@ export default function App() {
                 )}>
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
+
+                {/* --- AD RESET BUTTON --- */}
+                {message.isLimitMessage && (
+                  <button
+                    onClick={handleResetLimit}
+                    className="mt-6 self-start flex items-center gap-3 px-6 py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-amber-500 to-orange-600 shadow-xl transition-all border border-white/10"
+                  >
+                    <span>Watch Ad to Unlock Limit</span>
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
@@ -468,15 +464,15 @@ export default function App() {
                  <div className="flex gap-3">
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.3s]",
-                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                      theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
                     )}></div>
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.15s]",
-                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                      theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
                     )}></div>
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce",
-                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                      theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
                     )}></div>
                  </div>
                  <span className={cn(
@@ -534,12 +530,12 @@ export default function App() {
                   V-Astra is AI, and can make mistakes. Verify critical information.
                 </p>
                 <div className="flex justify-center gap-10">
-                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.1.0 // Matrix v2</p>
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.2.0 // Matrix Ads v1</p>
                    <div className={cn(
                      "w-1.5 h-1.5 rounded-full animate-pulse",
-                     theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
+                     theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
                    )}></div>
-                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">{isUnlockedMode ? "Unlimited Mode Active" : "Autonomous Logic Engine"}</p>
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
                 </div>
              </div>
            </div>
@@ -558,30 +554,4 @@ export default function App() {
           border-radius: 20px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #00d4ff44;
-        }
-        pre {
-          background: ${theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.7)'} !important;
-          border: 1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'};
-          border-radius: 20px;
-          padding: 2rem !important;
-          margin: 2rem 0 !important;
-          overflow-x: auto;
-          box-shadow: ${theme === 'dark' ? 'inset 0 2px 10px rgba(0,0,0,0.3)' : '0 10px 30px rgba(0,0,0,0.1)'};
-          backdrop-filter: blur(10px);
-        }
-        code {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 0.9em;
-          color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'} !important;
-        }
-        .prose h1, .prose h2, .prose h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; letter-spacing: -0.05em; color: ${theme === 'dark' ? '#fff' : '#000'} !important; }
-        .prose p { color: ${theme === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(15, 23, 42, 0.9)'} !important; font-weight: 500; }
-        .prose strong { color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'}; font-weight: 800; }
-        .prose blockquote { border-left: 4px solid #1c32c4; background: ${theme === 'dark' ? 'rgba(28, 50, 196, 0.05)' : 'rgba(28, 50, 196, 0.1)'}; padding: 1.5rem 2rem; border-radius: 0 20px 20px 0; color: ${theme === 'dark' ? '#cbd5e1' : '#475569'} !important; }
-        .prose ul li::marker { color: ${theme === 'dark' ? '#00d4ff' : '#1c32c4'}; }
-      `}</style>
-    </div>
-  );
-}
-
+          background: #00
