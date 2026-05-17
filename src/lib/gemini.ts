@@ -1,19 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
+// 🔑 Paste your valid Google AI Studio API Key here:
+const apiKey = "GOOGLE_GENERATIVE_AI_API_KEY";
 
-if (!apiKey) {
-  console.warn("GEMINI_API_KEY is not defined. AI features will not work.");
-}
-
-export const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+export const ai = new GoogleGenAI({ apiKey: apiKey });
 
 export const getGeminiResponse = async (prompt: string, history: { role: "user" | "model"; content: string }[] = []) => {
-  if (!apiKey) {
-    throw new Error("Gemini API Key is missing. Please check your environment variables.");
+  if (!apiKey || apiKey === "YOUR_ACTUAL_API_KEY_HERE") {
+    throw new Error("Gemini API Key is missing. Please check your gemini.ts file.");
   }
 
-  const model = "gemini-3-flash-preview";
+  // 🤖 Using the exact Gemini 2.5 Flash model
+  const model = "gemini-2.5-flash";
   
   // Transform history to model-expected format
   const contents = history.map(h => ({
