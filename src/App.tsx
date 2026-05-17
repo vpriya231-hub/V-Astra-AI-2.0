@@ -40,8 +40,17 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [isUnlockedMode, setIsUnlockedMode] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check URL parameters to see if user arrived from the Ad Unlock section
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get("mode") === "unlocked") {
+      setIsUnlockedMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     const savedSessions = localStorage.getItem("v_astra_sessions");
@@ -118,18 +127,17 @@ export default function App() {
     const savedDate = localStorage.getItem("v_astra_chat_date");
     let count = parseInt(localStorage.getItem("v_astra_chat_count") || "0");
 
-    // Reset the counter if a new day has arrived
     if (savedDate !== today) {
       localStorage.setItem("v_astra_chat_date", today);
       localStorage.setItem("v_astra_chat_count", "0");
       count = 0;
     }
 
-    // Intercept and block if user exceeds maximum daily limits
-    if (count >= MAX_MESSAGES) {
+    // Bypass rate limiting entirely if the user is in Unlocked Mode via Ads
+    if (!isUnlockedMode && count >= MAX_MESSAGES) {
       const limitMsgObj: ChatMessage = {
         id: crypto.randomUUID(),
-        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra, please return tomorrow or tap the **'Unlock More'** button on the home screen to watch a quick ad and renew your credits instantly.",
+        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra without limits, please go back to the home screen and open the **'Unlock More'** section to watch a quick ad and open your unlimited chat matrix instantly.",
         role: "model",
         timestamp: new Date().toISOString(),
       };
@@ -178,8 +186,10 @@ export default function App() {
 
       setMessages(prev => [...prev, aiMsgObj]);
 
-      // Only increment counter if the API request finishes successfully
-      localStorage.setItem("v_astra_chat_count", (count + 1).toString());
+      // Increment counter only if not in unlocked premium mode
+      if (!isUnlockedMode) {
+        localStorage.setItem("v_astra_chat_count", (count + 1).toString());
+      }
 
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
@@ -237,10 +247,15 @@ export default function App() {
             )}>
                <Bot className="w-7 h-7 text-[#00d4ff]" />
             </div>
-            <span className={cn(
-              "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
-              theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
-            )}>V-Astra</span>
+            <div className="flex flex-col">
+              <span className={cn(
+                "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
+                theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
+              )}>V-Astra</span>
+              {isUnlockedMode && (
+                <span className="text-[9px] font-black tracking-widest text-[#00d4ff] uppercase">UNLOCKED MODE</span>
+              )}
+            </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-3 rounded-2xl hover:bg-black/5 transition-colors">
             <X className="w-6 h-6" />
@@ -314,7 +329,7 @@ export default function App() {
               "text-[11px] font-black tracking-[0.4em] uppercase drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]",
               theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
             )}>
-               V-Astra Autonomous Intelligence System
+               V-Astra {isUnlockedMode ? "Matrix Unlocked" : "Autonomous Intelligence"} System
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -356,7 +371,7 @@ export default function App() {
                   "text-xl md:text-2xl font-medium max-w-lg mx-auto leading-relaxed",
                   theme === "dark" ? "text-gray-400" : "text-gray-600"
                 )}>
-                  The future of autonomous reasoning, crystallized in digital glass.
+                  {isUnlockedMode ? "Unlimited session established via node clearance." : "The future of autonomous reasoning, crystallized in digital glass."}
                 </p>
               </div>
 
@@ -524,7 +539,7 @@ export default function App() {
                      "w-1.5 h-1.5 rounded-full animate-pulse",
                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
                    )}></div>
-                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
+                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">{isUnlockedMode ? "Unlimited Mode Active" : "Autonomous Logic Engine"}</p>
                 </div>
              </div>
            </div>
@@ -569,3 +584,4 @@ export default function App() {
     </div>
   );
 }
+
