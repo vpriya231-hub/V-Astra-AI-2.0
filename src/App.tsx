@@ -40,17 +40,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [isUnlockedMode, setIsUnlockedMode] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // URL parameter check for unlocked mode
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    if (queryParams.get("mode") === "unlocked") {
-      setIsUnlockedMode(true);
-    }
-  }, []);
 
   useEffect(() => {
     const savedSessions = localStorage.getItem("v_astra_sessions");
@@ -121,29 +112,45 @@ export default function App() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // --- 🔐 DAILY RATELIMIT LOGIC ---
+    // --- ðŸ” DAILY RATELIMIT LOGIC START ---
     const MAX_MESSAGES = 20; 
     const today = new Date().toDateString();
     const savedDate = localStorage.getItem("v_astra_chat_date");
     let count = parseInt(localStorage.getItem("v_astra_chat_count") || "0");
 
+    // Reset the counter if a new day has arrived
     if (savedDate !== today) {
       localStorage.setItem("v_astra_chat_date", today);
       localStorage.setItem("v_astra_chat_count", "0");
       count = 0;
     }
 
-    // Bypass if url has ?mode=unlocked
-    if (!isUnlockedMode && count >= MAX_MESSAGES) {
+    // Intercept and block if user exceeds maximum daily limits
+    if (count >= MAX_MESSAGES) {
       const limitMsgObj: ChatMessage = {
         id: crypto.randomUUID(),
-        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra, please return tomorrow or tap the **'Unlock More'** button on the home screen to watch a quick ad and renew your credits instantly.",
+        content: "âš ï¸ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra, please return tomorrow or tap the **'Unlock More'** button on the home screen to watch a quick ad and renew your credits instantly.",
         role: "model",
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, limitMsgObj]);
       setInput("");
       return; 
+    }
+    // --- ðŸ” DAILY RATELIMIT LOGIC END ---
+
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      const newSession: ChatSession = {
+        id: crypto.randomUUID(),
+        title: input.slice(0, 30) + (input.length > 30 ? "..." : ""),
+        userId: "local-user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setSessions(prev => [newSession, ...prev]);
+      sessionId = newSession.id;
+      setCurrentSessionId(sessionId);
     }
 
     const userMessage = input.trim();
@@ -158,20 +165,6 @@ export default function App() {
     setInput("");
     setIsLoading(true);
 
-    let sessionId = currentSessionId;
-    if (!sessionId) {
-      const newSession: ChatSession = {
-        id: crypto.randomUUID(),
-        title: userMessage.slice(0, 30) + (userMessage.length > 30 ? "..." : ""),
-        userId: "local-user",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-      setSessions(prev => [newSession, ...prev]);
-      sessionId = newSession.id;
-      setCurrentSessionId(sessionId);
-    }
-
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
       const aiResponse = await getGeminiResponse(userMessage, history);
@@ -185,9 +178,8 @@ export default function App() {
 
       setMessages(prev => [...prev, aiMsgObj]);
 
-      if (!isUnlockedMode) {
-        localStorage.setItem("v_astra_chat_count", (count + 1).toString());
-      }
+      // Only increment counter if the API request finishes successfully
+      localStorage.setItem("v_astra_chat_count", (count + 1).toString());
 
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
@@ -245,15 +237,10 @@ export default function App() {
             )}>
                <Bot className="w-7 h-7 text-[#00d4ff]" />
             </div>
-            <div className="flex flex-col">
-              <span className={cn(
-                "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
-                theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
-              )}>V-Astra</span>
-              {isUnlockedMode && (
-                <span className="text-[9px] font-black tracking-widest text-[#00d4ff] uppercase">UNLOCKED MODE</span>
-              )}
-            </div>
+            <span className={cn(
+              "font-display font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br",
+              theme === "dark" ? "from-white to-gray-400" : "from-black to-gray-600"
+            )}>V-Astra</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-3 rounded-2xl hover:bg-black/5 transition-colors">
             <X className="w-6 h-6" />
@@ -316,7 +303,7 @@ export default function App() {
 
       <main className="flex-1 flex flex-col relative h-full overflow-hidden">
         <header className={cn(
-          "h-20 border-b flex items-center px-8 justify-between glass sticky top-0 z-10",
+          "h-20 border-b flex items-center px-8 justify-between glass sticky top-0 z-10 animate-in fade-in slide-in-from-top-4 duration-700",
           theme === "dark" ? "border-white/10" : "border-black/5"
         )}>
           <div className="flex items-center gap-6">
@@ -327,7 +314,7 @@ export default function App() {
               "text-[11px] font-black tracking-[0.4em] uppercase drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]",
               theme === "dark" ? "text-[#00d4ff]" : "text-[#1c32c4]"
             )}>
-               V-Astra {isUnlockedMode ? "Matrix Unlocked" : "Autonomous Intelligence"} System
+               V-Astra Autonomous Intelligence System
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -369,7 +356,7 @@ export default function App() {
                   "text-xl md:text-2xl font-medium max-w-lg mx-auto leading-relaxed",
                   theme === "dark" ? "text-gray-400" : "text-gray-600"
                 )}>
-                  {isUnlockedMode ? "Unlimited session established via node clearance." : "The future of autonomous reasoning, crystallized in digital glass."}
+                  The future of autonomous reasoning, crystallized in digital glass.
                 </p>
               </div>
 
@@ -416,7 +403,7 @@ export default function App() {
               <div className={cn(
                 "w-14 h-14 rounded-[20px] flex items-center justify-center flex-shrink-0 shadow-2xl relative overflow-hidden ring-1",
                 message.role === "user" 
-                  ? "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-white/10" 
+                  ? (theme === "dark" ? "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-white/10" : "bg-gradient-to-br from-[#00d4ff] to-[#1c32c4] ring-black/10 shadow-indigo-500/20") 
                   : (theme === "dark" ? "glass ring-white/5 bg-white/5" : "glass ring-black/5 bg-white/60 shadow-lg")
               )}>
                 {message.role === "user" ? <UserIcon className="w-7 h-7 text-white" /> : <Bot className={cn(
@@ -427,8 +414,12 @@ export default function App() {
               <div className={cn(
                 "flex-1 px-10 py-8 glass-card border shadow-2xl relative",
                 message.role === "user" 
-                  ? (theme === "dark" ? "bg-white/[0.08] border-white/10" : "bg-white/70 border-black/5") 
-                  : (theme === "dark" ? "bg-white/[0.03] border-white/5" : "bg-white/40 border-black/5")
+                  ? (theme === "dark" 
+                      ? "bg-white/[0.08] border-white/10 shadow-[#00d4ff]/5" 
+                      : "bg-white/70 border-black/5 shadow-gray-200") 
+                  : (theme === "dark"
+                      ? "bg-white/[0.03] border-white/5" 
+                      : "bg-white/40 border-black/5 shadow-sm")
               )}>
                 <div className={cn(
                   "prose max-w-none prose-p:leading-[1.8] prose-p:font-medium",
@@ -462,15 +453,15 @@ export default function App() {
                  <div className="flex gap-3">
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.3s]",
-                      theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
+                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
                     )}></div>
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce [animation-delay:-0.15s]",
-                      theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
+                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
                     )}></div>
                     <div className={cn(
                       "w-3 h-3 rounded-full animate-bounce",
-                      theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
+                      theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_15px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
                     )}></div>
                  </div>
                  <span className={cn(
@@ -531,7 +522,7 @@ export default function App() {
                    <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.1.0 // Matrix v2</p>
                    <div className={cn(
                      "w-1.5 h-1.5 rounded-full animate-pulse",
-                     theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
+                     theme === "dark" ? "bg-[#00d4ff] shadow-[0_0_8px_rgba(0,212,255,0.8)]" : "bg-[#1c32c4] shadow-lg"
                    )}></div>
                    <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
                 </div>
@@ -561,6 +552,8 @@ export default function App() {
           padding: 2rem !important;
           margin: 2rem 0 !important;
           overflow-x: auto;
+          box-shadow: ${theme === 'dark' ? 'inset 0 2px 10px rgba(0,0,0,0.3)' : '0 10px 30px rgba(0,0,0,0.1)'};
+          backdrop-filter: blur(10px);
         }
         code {
           font-family: 'JetBrains Mono', monospace;
