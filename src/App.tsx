@@ -109,7 +109,6 @@ export default function App() {
     setTheme(prev => prev === "dark" ? "light" : "dark");
   };
 
-  // Safe reset function without complicated hooks
   const handleResetLimit = () => {
     const today = new Date().toDateString();
     localStorage.setItem("v_astra_chat_date", today);
@@ -433,9 +432,9 @@ export default function App() {
                 {message.isLimitMessage && (
                   <button
                     onClick={handleResetLimit}
-                    className="mt-6 self-start flex items-center gap-3 px-6 py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-amber-500 to-orange-600 shadow-xl transition-all border border-white/10"
+                    className="mt-6 self-start px-6 py-4 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-amber-500 to-orange-600 shadow-xl transition-all border border-white/10 cursor-pointer"
                   >
-                    <span>Watch Ad to Unlock Limit</span>
+                    Watch Ad to Unlock Limit
                   </button>
                 )}
               </div>
@@ -527,31 +526,4 @@ export default function App() {
              
              <div className="flex flex-col items-center gap-4 mt-8">
                 <p className="text-[9px] font-bold tracking-[0.1em] opacity-40 uppercase text-center px-4">
-                  V-Astra is AI, and can make mistakes. Verify critical information.
-                </p>
-                <div className="flex justify-center gap-10">
-                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">V-Astra v4.2.0 // Matrix Ads v1</p>
-                   <div className={cn(
-                     "w-1.5 h-1.5 rounded-full animate-pulse",
-                     theme === "dark" ? "bg-[#00d4ff]" : "bg-[#1c32c4]"
-                   )}></div>
-                   <p className="text-[10px] font-black tracking-[0.4em] uppercase text-white/20 hover:text-white/40 transition-colors cursor-default">Autonomous Logic Engine</p>
-                </div>
-             </div>
-           </div>
-        </div>
-      </main>
-
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: ${theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};
-          border-radius: 20px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #00
+                  V-A
