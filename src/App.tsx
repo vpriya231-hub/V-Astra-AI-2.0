@@ -112,6 +112,33 @@ export default function App() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    // --- 🔐 DAILY RATELIMIT LOGIC START ---
+    const MAX_MESSAGES = 20; 
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem("v_astra_chat_date");
+    let count = parseInt(localStorage.getItem("v_astra_chat_count") || "0");
+
+    // Reset the counter if a new day has arrived
+    if (savedDate !== today) {
+      localStorage.setItem("v_astra_chat_date", today);
+      localStorage.setItem("v_astra_chat_count", "0");
+      count = 0;
+    }
+
+    // Intercept and block if user exceeds maximum daily limits
+    if (count >= MAX_MESSAGES) {
+      const limitMsgObj: ChatMessage = {
+        id: crypto.randomUUID(),
+        content: "⚠️ **Your daily free limit of 20 messages has been reached.** \n\nTo continue using V-Astra, please return tomorrow or tap the **'Unlock More'** button on the home screen to watch a quick ad and renew your credits instantly.",
+        role: "model",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, limitMsgObj]);
+      setInput("");
+      return; 
+    }
+    // --- 🔐 DAILY RATELIMIT LOGIC END ---
+
     let sessionId = currentSessionId;
     if (!sessionId) {
       const newSession: ChatSession = {
@@ -150,6 +177,9 @@ export default function App() {
       };
 
       setMessages(prev => [...prev, aiMsgObj]);
+
+      // Only increment counter if the API request finishes successfully
+      localStorage.setItem("v_astra_chat_count", (count + 1).toString());
 
       setSessions(prev => prev.map(s => {
         if (s.id === sessionId) {
