@@ -1,21 +1,18 @@
-// 🔑 Your brand new valid Google Cloud Paid API Key with $300 pool
-const apiKey = "AIzaSyC5dqKnoHQQLpem-Gxel-56Z_MVm2jt9SY";
+// 🔐 API Key is now securely loaded from Vercel Environment Variables
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 export const getGeminiResponse = async (prompt: string, history: { role: string; content: string }[] = []) => {
-  if (!apiKey || apiKey === "GOOGLE_GENERATIVE_AI_API_KEY") {
-    throw new Error("Gemini API Key is missing. Please check your gemini.ts file.");
+  if (!apiKey) {
+    throw new Error("Gemini API Key is missing in Environment Variables.");
   }
 
-  // 🌐 Official Google Gemini API production endpoint
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-  // 💬 Formatting the chat history into the exact structure Google expects
   const contents = history.map(h => ({
     role: h.role === "user" ? "user" : "model",
     parts: [{ text: h.content }]
   }));
 
-  // Append the active user query to the payload
   contents.push({
     role: "user",
     parts: [{ text: prompt }]
@@ -24,9 +21,7 @@ export const getGeminiResponse = async (prompt: string, history: { role: string;
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: contents,
         systemInstruction: {
@@ -36,8 +31,6 @@ export const getGeminiResponse = async (prompt: string, history: { role: string;
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Google API Production Error:", errorData);
       throw new Error(`Google API responded with status ${response.status}`);
     }
 
@@ -45,7 +38,7 @@ export const getGeminiResponse = async (prompt: string, history: { role: string;
     return data.candidates[0].content.parts[0].text;
 
   } catch (error) {
-    console.error("Gemini API Direct Fetch Error:", error);
+    console.error("Gemini API Error:", error);
     return "Connection link busy. Syncing with intelligence node. Please try again.";
   }
 };
