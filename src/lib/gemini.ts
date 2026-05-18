@@ -22,11 +22,11 @@ export const getGeminiResponse = async (prompt: string, history: { role: "user" 
   });
 
   try {
-    // Direct fetch call to Google API without using any breaking SDK packages
+    // Direct fetch call to Google API with corrected Content-Type header
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         contents: contents,
