@@ -45,6 +45,8 @@ export default function App() {
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [isNewSession, setIsNewSession] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [enableWebSearch, setEnableWebSearch] = useState<boolean>(true);
+  const [isCapabilitiesExpanded, setIsCapabilitiesExpanded] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +54,7 @@ export default function App() {
     const savedSessions = localStorage.getItem("v_astra_sessions");
     const savedTheme = localStorage.getItem("v_astra_theme") as "light" | "dark";
     const savedUsername = localStorage.getItem("v_astra_username") || "";
+    const savedWebSearch = localStorage.getItem("v_astra_web_search");
     
     if (savedSessions) setSessions(JSON.parse(savedSessions));
     
@@ -59,6 +62,12 @@ export default function App() {
       setTheme(savedTheme);
     } else {
       setTheme("light");
+    }
+
+    if (savedWebSearch !== null) {
+      setEnableWebSearch(savedWebSearch === "true");
+    } else {
+      setEnableWebSearch(true);
     }
 
     if (savedUsername) {
@@ -137,8 +146,18 @@ export default function App() {
       const name = tempName.trim();
       localStorage.setItem("v_astra_username", name);
       setUsername(name);
+      setIsNewSession(false);
       setIsSettingsOpen(false);
     }
+  };
+
+  const handleDeleteName = () => {
+    localStorage.removeItem("v_astra_username");
+    setUsername("");
+    setTempName("");
+    setIsNewSession(false);
+    setIsSettingsOpen(false);
+    setShowNamePrompt(true);
   };
 
   const getTimeBasedGreeting = (name: string) => {
@@ -186,7 +205,7 @@ export default function App() {
 
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const aiResponse = await getGeminiResponse(userMessage, history);
+      const aiResponse = await getGeminiResponse(userMessage, history, enableWebSearch);
 
       const aiMsgObj: ChatMessage = {
         id: crypto.randomUUID(),
@@ -631,31 +650,166 @@ export default function App() {
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-3 p-4 rounded-2xl border bg-black/[0.02] border-black/5 dark:bg-white/[0.02] dark:border-white/5">
+                <div className="flex flex-col gap-4 p-5 rounded-2xl border bg-black/[0.02] border-black/5 dark:bg-white/[0.02] dark:border-white/5">
+                  <div className="flex items-center justify-between border-b pb-3 border-black/5 dark:border-white/5">
+                    <div>
+                      <p className="font-bold text-sm">Name Profile</p>
+                      <p className="text-xs opacity-50">Current: <span className="font-black text-[#00d4ff]">{username || "Not set"}</span></p>
+                    </div>
+                    {username && (
+                      <button 
+                        onClick={handleDeleteName}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"
+                      >
+                        Delete Name
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold opacity-60">Edit Name</p>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={tempName}
+                        onChange={(e) => setTempName(e.target.value)}
+                        placeholder="Enter new name..."
+                        className={cn(
+                          "flex-1 px-4 py-2 rounded-xl border text-sm font-bold focus:ring-0 focus:outline-none transition-colors",
+                          theme === "dark" 
+                            ? "bg-white/[0.05] border-white/10 focus:border-[#00d4ff]/40 text-white" 
+                            : "bg-black/[0.02] border-black/5 focus:border-[#1c32c4]/30 text-black"
+                        )}
+                      />
+                      <button 
+                        onClick={handleSaveName}
+                        className="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 bg-gradient-to-r from-[#00d4ff] to-[#1c32c4] text-white hover:opacity-90"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4 p-5 rounded-2xl border bg-black/[0.02] border-black/5 dark:bg-white/[0.02] dark:border-white/5">
                   <div>
-                    <p className="font-bold text-sm">Your Name</p>
-                    <p className="text-xs opacity-50">Change how the system addresses you</p>
+                    <p className="font-bold text-sm">Try our Apps</p>
+                    <p className="text-xs opacity-50">Discover more powerful tools from V-Astra</p>
                   </div>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={tempName}
-                      onChange={(e) => setTempName(e.target.value)}
-                      placeholder="Enter name..."
+                  
+                  <div className="space-y-3">
+                    <a 
+                      href="https://play.google.com/store/apps/details?id=com.vastra.vtrans" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
                       className={cn(
-                        "flex-1 px-4 py-2 rounded-xl border text-sm font-bold focus:ring-0 focus:outline-none transition-colors",
+                        "flex items-center justify-between p-3.5 rounded-xl border transition-all hover:scale-[1.01] active:scale-[0.99]",
                         theme === "dark" 
-                          ? "bg-white/[0.05] border-white/10 focus:border-[#00d4ff]/40 text-white" 
-                          : "bg-black/[0.02] border-black/5 focus:border-[#1c32c4]/30 text-black"
+                          ? "bg-white/[0.03] border-white/5 hover:bg-white/[0.07] hover:border-white/10" 
+                          : "bg-black/[0.01] border-black/5 hover:bg-black/[0.03] hover:border-black/10"
                       )}
-                    />
-                    <button 
-                      onClick={handleSaveName}
-                      className="px-4 py-2 rounded-xl font-bold text-xs transition-all active:scale-95 bg-gradient-to-r from-[#00d4ff] to-[#1c32c4] text-white hover:opacity-90"
                     >
-                      Save
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shadow-sm",
+                          theme === "dark" ? "bg-[#00d4ff]/10 text-[#00d4ff] border border-[#00d4ff]/20" : "bg-[#1c32c4]/10 text-[#1c32c4] border border-[#1c32c4]/10"
+                        )}>
+                          VT
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs">V-Trans</p>
+                          <p className="text-[10px] opacity-60">Voice & Text Translator</p>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-4 h-4 opacity-40 hover:opacity-100" />
+                    </a>
+
+                    <div 
+                      className={cn(
+                        "flex items-center justify-between p-3.5 rounded-xl border opacity-70",
+                        theme === "dark" 
+                          ? "bg-white/[0.01] border-white/5" 
+                          : "bg-black/[0.005] border-black/5"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs",
+                          theme === "dark" ? "bg-white/5 text-white/40" : "bg-black/5 text-black/40"
+                        )}>
+                          VX
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs">Vocalix</p>
+                          <p className="text-[10px] opacity-60">Malayalam AI Voice Over</p>
+                        </div>
+                      </div>
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                        theme === "dark" ? "bg-white/5 border-white/10 text-white/50" : "bg-black/5 border-black/5 text-black/50"
+                      )}>
+                        Coming Soon
+                      </span>
+                    </div>
                   </div>
+                </div>
+
+                <div className="flex flex-col rounded-2xl border bg-black/[0.02] border-black/5 dark:bg-white/[0.02] dark:border-white/5 overflow-hidden">
+                  <button 
+                    onClick={() => setIsCapabilitiesExpanded(!isCapabilitiesExpanded)}
+                    className="flex items-center justify-between p-5 w-full text-left font-bold text-sm transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                  >
+                    <div>
+                      <p className="font-bold text-sm">Capabilities</p>
+                      <p className="text-xs font-normal opacity-50">Manage V-Astra smart services</p>
+                    </div>
+                    <span className={cn(
+                      "text-xs font-bold px-3 py-1 rounded-lg border transition-all",
+                      theme === "dark" 
+                        ? "bg-white/5 border-white/10 hover:bg-white/10" 
+                        : "bg-black/[0.02] border-black/5 hover:bg-black/5"
+                    )}>
+                      {isCapabilitiesExpanded ? "Hide" : "Configure"}
+                    </span>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isCapabilitiesExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-black/5 dark:border-white/5 p-5 bg-black/[0.01] dark:bg-white/[0.01]"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-bold">Web Search</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextVal = !enableWebSearch;
+                              setEnableWebSearch(nextVal);
+                              localStorage.setItem("v_astra_web_search", String(nextVal));
+                            }}
+                            className={cn(
+                              "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none",
+                              enableWebSearch ? "bg-gradient-to-r from-[#00d4ff] to-[#1c32c4]" : "bg-neutral-300 dark:bg-neutral-700"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200",
+                                enableWebSearch ? "translate-x-6" : "translate-x-1"
+                              )}
+                            />
+                          </button>
+                        </div>
+                        <p className="text-xs opacity-50 leading-relaxed">
+                          V Astra will automatically search the web when it determines it needs current information.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>
