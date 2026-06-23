@@ -1,44 +1,44 @@
-// 🔐 Securing the brand new fresh key inside code safely
-const getSecureKey = () => {
-  // Breaking the key into hidden blocks to bypass automatic GitHub public scanners
-  const block1 = "AIzaSyDAhQ8_dQyuKS";
-  const block2 = "csY32zR42I08nZSVRQ8Js";
+import { GoogleGenAI } from "@google/genai";
+
+const apiKey = process.env.GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.warn("GEMINI_API_KEY is not defined. AI features will not work.");
+}
+
+export const ai = new GoogleGenAI({ apiKey: apiKey || "" });
+
+export const getGeminiResponse = async (prompt: string, history: { role: "user" | "model"; content: string }[] = []) => {
+  if (!apiKey) {
+    throw new Error("Gemini API Key is missing. Please check your environment variables.");
+  }
+
+  const model = "gemini-3-flash-preview";
   
-  // Combines securely without triggering the exposed key scanners
-  return block1 + block2;
-};
-
-const apiKey = getSecureKey();
-
-export const getGeminiResponse = async (prompt: string, history: { role: string; content: string }[] = []) => {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
+  // Transform history to model-expected format
   const contents = history.map(h => ({
     role: h.role === "user" ? "user" : "model",
     parts: [{ text: h.content }]
   }));
 
+  // Add the current prompt
   contents.push({
     role: "user",
     parts: [{ text: prompt }]
   });
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: contents,
-        systemInstruction: {
-          parts: [{ text: "You are V-Astra AI, a professional, fast, and responsive chatbot. Your tone is helpful, polite, and technically savvy. You respond with clear, formatted markdown. You represent V-Astra AI, a high-performance AI entity." }]
-        }
-      })
+    const response = await ai.models.generateContent({
+      model,
+      contents,
+      config: {
+        systemInstruction: "You are V-Astra AI, a professional, fast, and responsive chatbot. Your tone is helpful, polite, and technically savvy. You respond with clear, formatted markdown. You represent V-Astra AI, a high-performance AI entity. Keep responses concise but comprehensive.",
+      }
     });
 
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    return response.text;
   } catch (error) {
-    console.error("Error:", error);
-    return "Intelligence node synchronizing. Please send the message again.";
+    console.error("Gemini API Error:", error);
+    throw error;
   }
 };
